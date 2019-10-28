@@ -6,16 +6,17 @@ using System.Windows.Forms;
 
 namespace VM
 {
-    public static class Requests
+    static class Requests
     {
-        public static BindingSource Select(string command, ref SqlDataAdapter dataAdapter)
+        static SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\BD.mdf;Integrated Security=True");
+
+        public static BindingSource Select(string command)
         {
             BindingSource bs = null;
 
             try
-            {
-                SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\BD.mdf;Integrated Security=True");
-                dataAdapter = new SqlDataAdapter(command, con);
+            {                
+                SqlDataAdapter dataAdapter = new SqlDataAdapter(command, con);
                 SqlCommandBuilder commandBuilder = new SqlCommandBuilder(dataAdapter);
                 DataTable table = new DataTable();
                 dataAdapter.Fill(table);
@@ -24,7 +25,11 @@ namespace VM
             }
             catch
             {
-                
+                bs = null;
+            }
+            finally
+            {
+                con.Close();
             }
 
             return bs;           
@@ -32,8 +37,7 @@ namespace VM
 
         public static string Request(string request)
         {
-            string errorMessage = "";
-            SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\BD.mdf;Integrated Security=True");
+            string errorMessage = "";            
 
             try
             {
@@ -59,7 +63,6 @@ namespace VM
 
             try
             {
-                SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\BD.mdf;Integrated Security=True");
                 SqlDataAdapter adapter = new SqlDataAdapter(request, con);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
@@ -75,16 +78,20 @@ namespace VM
             }
             catch 
             {
-                
+                list = null;
             }
+            finally
+            {
+                con.Close();
+            }
+
 
             return list;      
         }       
 
         public static int GetValue(string request)
         {
-            int value = -1;
-            SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\BD.mdf;Integrated Security=True");
+            int value = -1;           
 
             try
             {
