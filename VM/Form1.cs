@@ -27,7 +27,7 @@ namespace VM
             }
             else
             {
-                button1.Enabled = button2.Enabled = button3.Enabled = false;
+                ProgramError();
             }
 
             if (dataGridView1.ColumnCount > 1)
@@ -36,7 +36,7 @@ namespace VM
             }
             else
             {
-                button1.Enabled = button2.Enabled = button3.Enabled = false;
+                ProgramError();
             }         
 
             if (dataGridView2.ColumnCount > 2)
@@ -46,7 +46,7 @@ namespace VM
             }
             else
             {
-                button1.Enabled = button2.Enabled = button3.Enabled = false;
+                ProgramError();
             }
 
             if (dataGridView3.ColumnCount > 1)
@@ -55,94 +55,92 @@ namespace VM
             }
             else
             {
-                button1.Enabled = button2.Enabled = button3.Enabled = false;
+                ProgramError();
             }
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            int count = Requests.GetValue("SELECT Count FROM UWallet WHERE Nominal = " + comboBox1.Text); //кол-во монет выбранного номинала
+            string message = Requests.Request("UPDATE UWallet SET Count -= 1 WHERE Nominal = " + comboBox1.Text);
 
-            if (count > 0) //если монеты есть
+            if (message != "")
             {
-                Requests.Request("UPDATE UWallet SET Count -= 1 WHERE Nominal = " + comboBox1.Text);
+                MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
 
-                if (Requests.GetValue("SELECT Nominal FROM SWallet WHERE Nominal = " + comboBox1.Text) == -1) //если нашло значение, то оно будет положительное, поэтому сравниваю с -1. Эти 2 условия на случай если в кофемашине нет монет номинала, который есть у пользователя
-                {
-                    Requests.Request("INSERT INTO SWallet VALUES (" + comboBox1.Text + ", 1)");
-                }
-                else
-                {
-                    Requests.Request("UPDATE SWallet SET Count += 1 WHERE Nominal = " + comboBox1.Text);
-                }
+            if (Requests.GetValue("SELECT Nominal FROM SWallet WHERE Nominal = " + comboBox1.Text) == -1) //если нашло значение, то оно будет положительное, поэтому сравниваю с -1. Эти 2 условия на случай если в кофемашине нет монет номинала, который есть у пользователя
+            {                
+                message = Requests.Request("INSERT INTO SWallet VALUES (" + comboBox1.Text + ", 1)");
 
-                bool flag = true;
-
-                try
+                if (message != "")
                 {
-                    sumOFF += Convert.ToInt32(comboBox1.Text);
-                }
-                catch
-                {
-                    flag = false;
-                }
-
-                if (flag == true)
-                {
-                    label2.Text = "Внесённая сумма: " + sumOFF + "р";
-                    FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView1, "SELECT * FROM UWallet");
-                    FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView3, "SELECT * FROM Swallet");
-                    FillFormElementFromBD.FillComboBoxFromBD(ref comboBox1, "SELECT Nominal FROM UWallet WHERE Count > 0"); //валидация ввода, т.е пользователь даже не сможет выбрать монеты, которые у него закончились. В таблице я оставил строки номинал монет которых у пользователя был (т.е. у которых на данный момент 0 кол-во)                
-
-                    if (comboBox1.Text == "") //если закончились деньги на кошельке пользователя
-                    {
-                        button1.Enabled = comboBox1.Enabled = false;
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("Сбой в работе программы! Программа завершает свою работу!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    Application.Exit();
+                    MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             else
             {
-                button1.Enabled = comboBox1.Enabled = false;                 
+                message = Requests.Request("UPDATE SWallet SET Count += 1 WHERE Nominal = " + comboBox1.Text);
+
+                if (message != "")
+                {
+                    MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
-        }       
+
+            bool flag = true;
+
+            try
+            {
+                sumOFF += Convert.ToInt32(comboBox1.Text);
+            }
+            catch
+            {
+                flag = false;
+            }
+
+            if (flag == true)
+            {
+                label2.Text = "Внесённая сумма: " + sumOFF + "р";
+                FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView1, "SELECT * FROM UWallet");
+                FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView3, "SELECT * FROM Swallet");
+                FillFormElementFromBD.FillComboBoxFromBD(ref comboBox1, "SELECT Nominal FROM UWallet WHERE Count > 0"); //валидация ввода, т.е пользователь даже не сможет выбрать монеты, которые у него закончились. В таблице я оставил строки номинал монет которых у пользователя был (т.е. у которых на данный момент 0 кол-во)                
+
+                if (comboBox1.Text == "") //если закончились деньги на кошельке пользователя
+                {
+                    button1.Enabled = comboBox1.Enabled = false;
+                }
+            }
+            else
+            {
+                MessageBox.Show("Сбой в работе программы! Программа завершает свою работу!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Application.Exit();
+            }
+        }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            int count = Requests.GetValue("SELECT Count FROM Assortment WHERE Title = N'" + comboBox2.Text + "'");
             int price = Requests.GetValue("SELECT Price FROM Assortment WHERE Title = N'" + comboBox2.Text + "'");
 
-            if (count > 0)
+            if (sumOFF >= price)
             {
-                if (sumOFF >= price)
+                sumOFF -= price;
+                label2.Text = "Внесённая сумма: " + sumOFF + "р";
+                Requests.Request("UPDATE Assortment SET Count -= 1 WHERE Title = N'" + comboBox2.Text + "'");
+                FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView2, "SELECT * FROM Assortment");
+                FillFormElementFromBD.FillComboBoxFromBD(ref comboBox2, "SELECT Title FROM Assortment WHERE Count > 0");
+
+                if (comboBox2.Text == "") //если закончились товары в кофемашине
                 {
-                    sumOFF -= price;
-                    label2.Text = "Внесённая сумма: " + sumOFF + "р";
-                    Requests.Request("UPDATE Assortment SET Count -= 1 WHERE Title = N'" + comboBox2.Text + "'");                      
-                    FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView2, "SELECT * FROM Assortment");
-                    FillFormElementFromBD.FillComboBoxFromBD(ref comboBox2, "SELECT Title FROM Assortment WHERE Count > 0");
-
-                    if (comboBox2.Text == "") //если закончились товары в кофемашине
-                    {
-                        button2.Enabled = comboBox2.Enabled = false;
-                    }
-
-                    MessageBox.Show("Спасибо!", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    button2.Enabled = comboBox2.Enabled = false;
                 }
-                else
-                {
-                    MessageBox.Show("Недостаточно средств!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }              
+
+                MessageBox.Show("Спасибо!", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                button2.Enabled = comboBox2.Enabled = false;                
+                MessageBox.Show("Недостаточно средств!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }        
+        }              
 
         private void button3_Click(object sender, EventArgs e)
         {
@@ -202,7 +200,7 @@ namespace VM
             }
             else
             {
-                MessageBox.Show("Вы не вносили денег либо внесённая вами сумма полностью израсходавана!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Вы не вносили денег либо внесённая вами сумма полностью израсходована!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -223,6 +221,12 @@ namespace VM
                     }
                 }
             }
+        }
+
+        private void ProgramError()
+        {
+            MessageBox.Show("Сбой в работе программы! Программа завершает свою работу!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Application.Exit();
         }        
     }
 }
