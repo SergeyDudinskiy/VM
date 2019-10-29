@@ -8,6 +8,7 @@ namespace VM
     public partial class Form1 : Form
     {       
         int sumOFF = 0; //сумма вложенная клиентом в кофемашину
+        string message; //переменная для принятия сообщения об ошибке
 
         public Form1()
         {
@@ -61,30 +62,15 @@ namespace VM
 
         private void button1_Click(object sender, EventArgs e)
         {
-            string message = Requests.Request("UPDATE UWallet SET Count -= 1 WHERE Nominal = " + comboBox1.Text);
-
-            if (message != "")
-            {
-                MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            Requests.GetResultRequest("UPDATE UWallet SET Count -= 1 WHERE Nominal = " + comboBox1.Text);
 
             if (Requests.GetValue("SELECT Nominal FROM SWallet WHERE Nominal = " + comboBox1.Text) == -1) //если нашло значение, то оно будет положительное, поэтому сравниваю с -1. Эти 2 условия на случай если в кофемашине нет монет номинала, который есть у пользователя
-            {                
-                message = Requests.Request("INSERT INTO SWallet VALUES (" + comboBox1.Text + ", 1)");
-
-                if (message != "")
-                {
-                    MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+            {
+                Requests.GetResultRequest("INSERT INTO SWallet VALUES (" + comboBox1.Text + ", 1)");                
             }
             else
             {
-                message = Requests.Request("UPDATE SWallet SET Count += 1 WHERE Nominal = " + comboBox1.Text);
-
-                if (message != "")
-                {
-                    MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                Requests.GetResultRequest("UPDATE SWallet SET Count += 1 WHERE Nominal = " + comboBox1.Text);                
             }
 
             bool flag = true;
@@ -124,8 +110,8 @@ namespace VM
             if (sumOFF >= price)
             {
                 sumOFF -= price;
-                label2.Text = "Внесённая сумма: " + sumOFF + "р";
-                Requests.Request("UPDATE Assortment SET Count -= 1 WHERE Title = N'" + comboBox2.Text + "'");
+                label2.Text = "Внесённая сумма: " + sumOFF + "р";             
+                Requests.GetResultRequest("UPDATE Assortment SET Count -= 1 WHERE Title = N'" + comboBox2.Text + "'");
                 FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView2, "SELECT * FROM Assortment");
                 FillFormElementFromBD.FillComboBoxFromBD(ref comboBox2, "SELECT Title FROM Assortment WHERE Count > 0");
 
@@ -148,13 +134,11 @@ namespace VM
             {
                 int sumVM = 0; //сумма находящаяся в кофемашине (дальше будет подсчитана)
                 List<List<int>> list = new List<List<int>>();
-                list.Add(Requests.GetList("SELECT Nominal FROM Swallet"));
-                list.Add(Requests.GetList("SELECT Count FROM SWallet"));                
+                list.Add(Requests.GetList("SELECT Nominal FROM Swallet ORDER BY Nominal DESC"));
+                list.Add(Requests.GetList("SELECT Count FROM SWallet ORDER BY Nominal DESC"));                
 
                 if (list[0].Count != 0 && list[0].Count == list[1].Count)
                 {
-                    Sort(ref list);
-
                     for (int i = 0; i < list[0].Count; i++)
                     {
                         sumVM += list[0][i] * list[1][i];                                            
@@ -176,8 +160,18 @@ namespace VM
                                 {
                                     sumOFF -= list[0][i];
                                     list[1][0]--;
-                                    value--;                                    
-                                    Requests.Request("UPDATE UWallet SET Count += 1 WHERE Nominal = " + list[0][i] + "; UPDATE SWallet SET Count -= 1 WHERE Nominal = " + list[0][i]);
+                                    value--;
+
+                                    if (Requests.GetValue("SELECT Nominal FROM UWallet WHERE Nominal = " + list[0][i]) == -1) 
+                                    {
+                                        Requests.GetResultRequest("INSERT INTO UWallet VALUES (" + list[0][i] + ", 1)");                                        
+                                    }
+                                    else
+                                    {
+                                        Requests.GetResultRequest("UPDATE UWallet SET Count += 1 WHERE Nominal = " + list[0][i]);                                        
+                                    }
+
+                                    Requests.GetResultRequest("UPDATE SWallet SET Count -= 1 WHERE Nominal = " + list[0][i]);                                   
                                     FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView1, "SELECT * FROM UWallet");
                                     FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView3, "SELECT * FROM SWallet");
                                     FillFormElementFromBD.FillComboBoxFromBD(ref comboBox1, "SELECT Nominal FROM UWallet WHERE Count > 0"); //валидация ввода, т.е пользователь даже не сможет выбрать монеты, которые у него закончились. В таблице я оставил строки номинал монет которых у пользователя был (т.е. у которых на данный момент 0 кол-во)                
@@ -201,25 +195,6 @@ namespace VM
             else
             {
                 MessageBox.Show("Вы не вносили денег либо внесённая вами сумма полностью израсходована!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void Sort(ref List<List<int>> list)
-        {
-            for (int i = 0; i < list[0].Count - 1; i++)
-            {
-                for (int j = i + 1; j < list[0].Count; j++)
-                {
-                    if (list[0][i] < list[0][j])
-                    {
-                        int temp = list[0][j];
-                        list[0][j] = list[0][i];
-                        list[0][i] = temp;
-                        temp = list[1][j];
-                        list[1][j] = list[1][i];
-                        list[1][i] = temp;
-                    }
-                }
             }
         }
 

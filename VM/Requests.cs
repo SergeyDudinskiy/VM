@@ -110,5 +110,15 @@ namespace VM
 
             return value;
         }
+
+        public static void GetResultRequest(string request)
+        {
+            string message = Requests.Request(request);
+
+            if (message != "")
+            {
+                MessageBox.Show(message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
     }
 }
