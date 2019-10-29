@@ -7,8 +7,8 @@ namespace VM
 {
     public partial class Form1 : Form
     {       
-        int sumOFF = 0; //сумма вложенная клиентом в кофемашину
-        string message; //переменная для принятия сообщения об ошибке
+        int sumUVM; //сумма вложенная клиентом в кофемашину
+        int sumVM; //сумма находящаяся в кофемашине         
 
         public Form1()
         {
@@ -77,7 +77,7 @@ namespace VM
 
             try
             {
-                sumOFF += Convert.ToInt32(comboBox1.Text);
+                sumUVM += Convert.ToInt32(comboBox1.Text);
             }
             catch
             {
@@ -86,7 +86,7 @@ namespace VM
 
             if (flag == true)
             {
-                label2.Text = "Внесённая сумма: " + sumOFF + "р";
+                label2.Text = "Внесённая сумма: " + sumUVM + "р";
                 FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView1, "SELECT * FROM UWallet");
                 FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView3, "SELECT * FROM Swallet");
                 FillFormElementFromBD.FillComboBoxFromBD(ref comboBox1, "SELECT Nominal FROM UWallet WHERE Count > 0"); //валидация ввода, т.е пользователь даже не сможет выбрать монеты, которые у него закончились. В таблице я оставил строки номинал монет которых у пользователя был (т.е. у которых на данный момент 0 кол-во)                
@@ -107,10 +107,10 @@ namespace VM
         {
             int price = Requests.GetValue("SELECT Price FROM Assortment WHERE Title = N'" + comboBox2.Text + "'");
 
-            if (sumOFF >= price)
+            if (sumUVM >= price)
             {
-                sumOFF -= price;
-                label2.Text = "Внесённая сумма: " + sumOFF + "р";             
+                sumUVM -= price;
+                label2.Text = "Внесённая сумма: " + sumUVM + "р";             
                 Requests.GetResultRequest("UPDATE Assortment SET Count -= 1 WHERE Title = N'" + comboBox2.Text + "'");
                 FillFormElementFromBD.FillDataGridViewFromBD(ref dataGridView2, "SELECT * FROM Assortment");
                 FillFormElementFromBD.FillComboBoxFromBD(ref comboBox2, "SELECT Title FROM Assortment WHERE Count > 0");
@@ -130,9 +130,8 @@ namespace VM
 
         private void button3_Click(object sender, EventArgs e)
         {
-            if (sumOFF != 0)
-            {
-                int sumVM = 0; //сумма находящаяся в кофемашине (дальше будет подсчитана)
+            if (sumUVM != 0)
+            {                
                 List<List<int>> list = new List<List<int>>();
                 list.Add(Requests.GetList("SELECT Nominal FROM Swallet ORDER BY Nominal DESC"));
                 list.Add(Requests.GetList("SELECT Count FROM SWallet ORDER BY Nominal DESC"));                
@@ -144,7 +143,7 @@ namespace VM
                         sumVM += list[0][i] * list[1][i];                                            
                     }                    
 
-                    if (sumVM < sumOFF)
+                    if (sumVM < sumUVM)
                     {
                         MessageBox.Show("В автомате недостаточно сдачи!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
@@ -156,9 +155,9 @@ namespace VM
 
                             for (int j = 0; j < value; j++)
                             {
-                                if (sumOFF - list[0][i] >= 0)
+                                if (sumUVM - list[0][i] >= 0)
                                 {
-                                    sumOFF -= list[0][i];
+                                    sumUVM -= list[0][i];
                                     list[1][0]--;
                                     value--;
 
@@ -184,7 +183,7 @@ namespace VM
                         }
 
                         button1.Enabled = comboBox1.Enabled = true;                        
-                        label2.Text = "Внесённая сумма: " + sumOFF + "р";
+                        label2.Text = "Внесённая сумма: " + sumUVM + "р";
                     }
                 }
                 else
